@@ -15,7 +15,9 @@
 
 // when ever we want to use any local package or dependency then we call it in the package.json file.
 
-const _ =   require("lodash");
-const items = [1, [2, [3, [4]]]];
-const newItems = _.flattenDeep(items);
-console.log(newItems);
+// const _ =   require("lodash");
+// const items = [1, [2, [3, [4]]]];
+// const newItems = _.flattenDeep(items);
+// console.log(newItems);
+
+
