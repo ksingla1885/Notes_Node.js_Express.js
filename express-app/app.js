@@ -1,6 +1,9 @@
 import express from 'express';
-import { connectDB } from './config/db.js';
-import { Person } from './models/person.js';
+import session from 'express-session';
+import cookieParser from 'cookie-parser';
+
+// import { connectDB } from './config/db.js';
+// import { Person } from './models/person.js';
 
 
 // import mongoose from 'mongoose';
@@ -18,11 +21,17 @@ import { Person } from './models/person.js';
 // });
 const app = express();
 const port = 9001;
+app.use(cookieParser);
+app.use(session({
+    secret: 'SampleSecreteText',
+    resave:false,
+    saveUninitialized:false
+}));
 
 
 
-app.use("/public", express.static("public"));
-app.use("/images", express.static("images"));
+// app.use("/public", express.static("public"));
+// app.use("/images", express.static("images"));
 
 // app.use(express.urlencoded({ extended: true }));
 // app.use(express.json);
@@ -31,48 +40,72 @@ app.use("/images", express.static("images"));
 // app.use(upload.single("image"));
 
 
-await connectDB();
-app.use(express.json());
+// await connectDB();
+// app.use(express.json());
 
 
-app.post("/person", async (req, res) => {
-    try {
-        const { email, name, age } = req.body;
-        const newPerson = new Person({
-            name, age, email
-        })
-        await newPerson.save();
-        console.log("Person data:", newPerson);
+// app.post("/person", async (req, res) => {
+//     try {
+//         const { email, name, age } = req.body;
+//         const newPerson = new Person({
+//             name, age, email
+//         })
+//         await newPerson.save();
+//         console.log("Person data:", newPerson);
 
-        res.send("Person data received ✅");
-    } catch (error) {
-        res.send(error.message);
-    }
-})
+//         res.send("Person data received ✅");
+//     } catch (error) {
+//         res.send(error.message);
+//     }
+// })
 
 
 
 //updating data
-app.put("/person", async (req, res) => {
-    const { email } = req.body;
-    const personData = await Person.findOneAndUpdate({ age: 30 });
+// app.put("/person", async (req, res) => {
+//     const { email } = req.body;
+//     const personData = await Person.findOneAndUpdate({ age: 30 });
 
-    res.send("Person data updated ✅");
-})
+//     res.send("Person data updated ✅");
+// })
 
 
 //deleting data
-app.delete("/person/:id", async (req, res) => {
-    const { id } = req.params;
-    await Person.findByIdAndDelete(id);
-    res.send("User deleted");
-})
+// app.delete("/person/:id", async (req, res) => {
+//     const { id } = req.params;
+//     await Person.findByIdAndDelete(id);
+//     res.send("User deleted");
+// })
 
 
 app.get("/", (req, res) => {
     res.send("Hello Ketan");
 })
+app.get("/visit", (req, res) => {
+    if(req.session.page_views){
+        req.session.page_views++;
+        res.send(`You visited this page ${req.session.page_views} times:`)
+    }
+    else{
+        req.session.page_views = 1;
+        res.send("Welcome for first time");
+    }
+})
 
+app.get("/remove-visit", (req, res) => {
+    req.session.destroy();
+    res.send("Session removed");
+})
+
+// app.get("/fetch", (req, res) => {
+//     console.log(req.cookies);
+//     res.send("API Called");
+// })
+
+// app.get("/remove-cookie", (req, res) =>{
+//     res.clearCookie('name');
+//     res.send("Cookie removed successfully");
+// })
 
 // app.post("/form", (req, res) => {
 //     console.log("Form data:", req.body);
