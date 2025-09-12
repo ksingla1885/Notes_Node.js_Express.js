@@ -1,6 +1,10 @@
 import express from 'express';
-import session from 'express-session';
-import cookieParser from 'cookie-parser';
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs'
+
+
+// import session from 'express-session';
+// import cookieParser from 'cookie-parser';
 
 // import { connectDB } from './config/db.js';
 // import { Person } from './models/person.js';
@@ -19,14 +23,19 @@ import cookieParser from 'cookie-parser';
 //         filesize: 1024 * 1024 * 1 // 1 MB
 //     }
 // });
+
+
 const app = express();
-const port = 9001;
-app.use(cookieParser);
-app.use(session({
-    secret: 'SampleSecreteText',
-    resave:false,
-    saveUninitialized:false
-}));
+const port = 3000;
+app.use(express.json());
+// app.use(cookieParser());
+// app.use(session({
+//     secret: 'SampleSecreteText',
+//     resave:false,
+//     saveUninitialized:false
+// }));
+
+const users = [];
 
 
 
@@ -34,7 +43,6 @@ app.use(session({
 // app.use("/images", express.static("images"));
 
 // app.use(express.urlencoded({ extended: true }));
-// app.use(express.json);
 
 //app.use(upload.array()); //easily parse the multiform data
 // app.use(upload.single("image"));
@@ -81,21 +89,86 @@ app.use(session({
 app.get("/", (req, res) => {
     res.send("Hello Ketan");
 })
-app.get("/visit", (req, res) => {
-    if(req.session.page_views){
-        req.session.page_views++;
-        res.send(`You visited this page ${req.session.page_views} times:`)
+
+//TOKEN BASED AUTHENTICATION
+app.post("/register", async (req, res) => {
+    const { username, password } = req.body;
+    const hashedPassword = await bcrypt.hash(password, 10);
+    users.push({
+        username,
+        password: hashedPassword
+    });
+    res.send("User registered");
+})
+
+app.post("/login", async (req, res) => {
+    const { username, password } = req.body;
+    const user = users.find(u => u.username === username);
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+        return res.send("Unauthorized");
     }
-    else{
-        req.session.page_views = 1;
-        res.send("Welcome for first time");
+    const token = jwt.sign({ username }, 'SecreteKey');
+    res.json({ token });
+})
+
+app.get("/dashboard", (req, res) => {
+    try {
+        const token = req.header('Authorization');
+        const decodedToken = jwt.verify(token, 'SecreteKey');
+        if (decodedToken.username) {
+            res.send(`Welcome ${decodedToken.username}`);
+        }
+        else {
+            res.send("Access Denied");
+        }
+    } catch (error) {
+        res.send(error.message); 
     }
 })
 
-app.get("/remove-visit", (req, res) => {
-    req.session.destroy();
-    res.send("Session removed");
-})
+// SESSION BASED AUTHENTICATION
+// app.post("/register", async(req, res) => {
+//     const {username, password} = req.body;
+//     users.push({
+//         username, password
+//     })
+//     res.send("User registered");
+// })
+
+// app.post("/login", async(req, res) =>{
+//     const {username, password} = req.body;
+//     const user = users.find(u => u.username === username);
+
+//     if(!user || password !== user.password){
+//         return res.send("Not authorized");
+//     }
+//     req.session.user = user;
+//     res.send("User logged in");
+// })
+
+// app.get("/dashboard", (req, res) =>{
+//     if(!req.session.user){
+//         return res.send("Unauthorized");
+//     }
+//     res.send(`Welcome ${req.session.user.username}`);
+// })
+
+
+// app.get("/visit", (req, res) => {
+//     if(req.session.page_views){
+//         req.session.page_views++;
+//         res.send(`You visited this page ${req.session.page_views} times:`)
+//     }
+//     else{
+//         req.session.page_views = 1;
+//         res.send("Welcome for first time");
+//     }
+// })
+
+// app.get("/remove-visit", (req, res) => {
+//     req.session.destroy();
+//     res.send("Session removed");
+// })
 
 // app.get("/fetch", (req, res) => {
 //     console.log(req.cookies);
@@ -199,4 +272,4 @@ app.get("/remove-visit", (req, res) => {
 
 app.listen(port, () => {
     console.log(`Server is hitting on http://localhost:${port}`);
-})
+});
