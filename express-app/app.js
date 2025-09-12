@@ -1,6 +1,6 @@
 import express from 'express';
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcryptjs'
+// import jwt from 'jsonwebtoken';
+// import bcrypt from 'bcryptjs'
 
 
 // import session from 'express-session';
@@ -28,6 +28,18 @@ import bcrypt from 'bcryptjs'
 const app = express();
 const port = 3000;
 app.use(express.json());
+
+
+//THESE ARE USED OT HANDLE UNCAUGHT EXCEPTIONS IN OUR APP AND THIS WILL GIVE CLEANER MESSAGE TO US AND PREVENT OUR APP FROM BEING CRASHING
+process.on("uncaughtException", (err) => {
+    console.log(err.message);
+    process.exit(1);
+})
+process.on("unhandledRejection", (reason, promise) => {
+    console.log(reason);
+})
+
+
 // app.use(cookieParser());
 // app.use(session({
 //     secret: 'SampleSecreteText',
@@ -35,7 +47,7 @@ app.use(express.json());
 //     saveUninitialized:false
 // }));
 
-const users = [];
+// const users = [];
 
 
 
@@ -90,41 +102,99 @@ app.get("/", (req, res) => {
     res.send("Hello Ketan");
 })
 
-//TOKEN BASED AUTHENTICATION
-app.post("/register", async (req, res) => {
-    const { username, password } = req.body;
-    const hashedPassword = await bcrypt.hash(password, 10);
-    users.push({
-        username,
-        password: hashedPassword
-    });
-    res.send("User registered");
-})
 
-app.post("/login", async (req, res) => {
-    const { username, password } = req.body;
-    const user = users.find(u => u.username === username);
-    if (!user || !(await bcrypt.compare(password, user.password))) {
-        return res.send("Unauthorized");
-    }
-    const token = jwt.sign({ username }, 'SecreteKey');
-    res.json({ token });
-})
-
-app.get("/dashboard", (req, res) => {
+// SYNC-ERROR
+app.get("/sync-error", (req, res, next) => {
     try {
-        const token = req.header('Authorization');
-        const decodedToken = jwt.verify(token, 'SecreteKey');
-        if (decodedToken.username) {
-            res.send(`Welcome ${decodedToken.username}`);
-        }
-        else {
-            res.send("Access Denied");
-        }
+        throw new Error("Sync error occurred");
     } catch (error) {
-        res.send(error.message); 
+        next(error);
     }
 })
+
+//ASYNC-ERROR
+app.get("/async-error", async(req, res, next) => {
+    try {
+        await Promise.reject(new Error("Async error occurred"));
+    } catch (error) {
+        next(error);
+    }
+})
+
+app.use((err, req, res, next) => {
+    console.error(err.message);
+    console.error(err.stack);
+    res.status(500).send({message:err.message})
+})
+
+
+//DIFFERENT STATUS CODES
+// GET ALL PRODUCTS
+// app.get("/api/products", (req, res) => {
+//     const products = [
+//         {id: 1, name: "Product 1", price: 100},
+//         {id: 2, name: "Product 2", price: 100},
+//     ]
+//     res.status(200).json({message: "Products added successfully", products});
+// })
+
+
+// GET SINGLE PRODUCT
+// app.get("/api/products/:id", (req, res) => {
+//      const products = [
+//         {id: 1, name: "Product 1", price: 100},
+//         {id: 2, name: "Product 2", price: 100},
+//     ]
+//     const product = products.find(p => p.id === parseInt(req.params.id));
+//     if(!product){
+//         return res.status(404).json({message: "Product not found"});
+//     }
+//     return res.status(200).json({message: "Product fetched successfully", product});
+// })
+
+//CREATE NEW PRODUCT
+// app.post("/api/products", (req, res) => {
+//     const newProduct = req.body;
+//     newProduct.id = Date.now();
+//     res.status(201).json({message: "Product created successfully", newProduct});
+// })
+
+
+//TOKEN BASED AUTHENTICATION
+// app.post("/register", async (req, res) => {
+//     const { username, password } = req.body;
+//     const hashedPassword = await bcrypt.hash(password, 10);
+//     users.push({
+//         username,
+//         password: hashedPassword
+//     });
+//     res.send("User registered");
+// })
+
+// app.post("/login", async (req, res) => {
+//     const { username, password } = req.body;
+//     const user = users.find(u => u.username === username);
+//     if (!user || !(await bcrypt.compare(password, user.password))) {
+//         return res.send("Unauthorized");
+//     }
+//     const token = jwt.sign({ username }, 'SecreteKey');
+//     res.json({ token });
+// })
+
+// app.get("/dashboard", (req, res) => {
+//     try {
+//         const token = req.header('Authorization');
+//         const decodedToken = jwt.verify(token, 'SecreteKey');
+//         if (decodedToken.username) {
+//             res.send(`Welcome ${decodedToken.username}`);
+//         }
+//         else {
+//             res.send("Access Denied");
+//         }
+//     } catch (error) {
+//         res.send(error.message); 
+//     }
+// })
 
 // SESSION BASED AUTHENTICATION
 // app.post("/register", async(req, res) => {
@@ -264,6 +334,7 @@ app.get("/dashboard", (req, res) => {
 //         message: `User ${userId} deleted successfully`
 //     })
 // })
+
 
 
 
